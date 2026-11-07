@@ -1,10 +1,14 @@
-# Ji Back — Sprints 1 e 2
+# Ji Back — Sprints 1 a 4
 
 API REST do Gerenciador Financeiro Pessoal Ji, desenvolvida com Java 21,
 Spring Boot 3.5.16 e PostgreSQL 17. A Sprint 1 implementa cadastro,
 autenticação, recuperação de senha e logout. A Sprint 2 acrescenta RF-02,
 RF-03, RF-04 e RF-23: consulta e edição do perfil, preferências financeiras,
 tema, restauração de configurações e encerramento lógico da conta.
+A Sprint 3 implementa o cadastro, a listagem, a edição, a exclusão e a
+categorização de entradas e saídas no contexto ativo. A Sprint 4 acrescenta
+o dashboard mensal (RF-09) e os orçamentos por categoria com alertas de 80%
+e de limite excedido (RF-16).
 
 O acesso às rotas protegidas usa JWT HS256 com duração padrão de oito horas.
 O token contém apenas `sub`, `jti`, `iat`, `exp`, `iss` e `aud`. Cada `jti`
@@ -94,6 +98,19 @@ docker compose --profile app down
 | `PATCH` | `/api/v1/usuarios/me/configuracao/tema` | Bearer JWT | `200` com tema atualizado |
 | `DELETE` | `/api/v1/usuarios/me/configuracao` | Bearer JWT | `200` com padrões restaurados |
 | `DELETE` | `/api/v1/usuarios/me` | Bearer JWT | `204`; conta e sessões encerradas |
+| `GET` | `/api/v1/categorias` | Bearer JWT | `200` com categorias disponíveis |
+| `POST` | `/api/v1/categorias` | Bearer JWT | `201` com categoria personalizada |
+| `PUT` | `/api/v1/categorias/{id}` | Bearer JWT | `200` com categoria atualizada |
+| `DELETE` | `/api/v1/categorias/{id}` | Bearer JWT | `204`; exclui ou arquiva a categoria |
+| `GET` | `/api/v1/transacoes` | Bearer JWT | `200` com página de 20 itens |
+| `POST` | `/api/v1/transacoes` | Bearer JWT | `201` com transação criada |
+| `PUT` | `/api/v1/transacoes/{id}` | Bearer JWT | `200` com transação atualizada |
+| `DELETE` | `/api/v1/transacoes/{id}` | Bearer JWT | `204`; exclusão auditada |
+| `GET` | `/api/v1/dashboard?mes=AAAA-MM` | Bearer JWT | `200` com resumo mensal, fluxo, categorias e lançamentos recentes |
+| `GET` | `/api/v1/orcamentos?mes=AAAA-MM` | Bearer JWT | `200` com limites e consumo do mês |
+| `POST` | `/api/v1/orcamentos` | Bearer JWT | `201` com orçamento criado |
+| `PUT` | `/api/v1/orcamentos/{id}` | Bearer JWT | `200` com orçamento atualizado |
+| `DELETE` | `/api/v1/orcamentos/{id}` | Bearer JWT | `204`; exclusão auditada |
 | `GET` | `/actuator/health` | pública | `200` |
 
 Cadastro:
@@ -163,6 +180,56 @@ português e um campo `codigo` estável. Credenciais ou JWT inválidos retornam
 `401`; dados inválidos, `400`; conflitos de e-mail ou CPF, `409`; falha do
 SMTP durante um envio real, `503`.
 
+Categorias e transações, usando o JWT retornado no login:
+
+```bash
+curl -s http://localhost:8080/api/v1/categorias \
+  -H "Authorization: Bearer SEU_TOKEN"
+
+curl -i http://localhost:8080/api/v1/transacoes \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tipo": "SAIDA",
+    "valor": 184.50,
+    "data": "2026-11-03",
+    "categoriaId": 1,
+    "descricao": "Supermercado"
+  }'
+
+curl -s 'http://localhost:8080/api/v1/transacoes?tipo=SAIDA&pagina=0' \
+  -H "Authorization: Bearer SEU_TOKEN"
+```
+
+As cinco categorias padrão são Alimentação, Transporte, Saúde, Lazer e
+Salário. Categorias personalizadas pertencem ao contexto ativo. Ao excluir uma
+categoria já usada, ela deixa de aparecer em novos lançamentos, mas permanece
+associada ao histórico.
+
+Dashboard e orçamento, usando o JWT retornado no login:
+
+```bash
+curl -s 'http://localhost:8080/api/v1/dashboard?mes=2026-11' \
+  -H "Authorization: Bearer SEU_TOKEN"
+
+curl -i http://localhost:8080/api/v1/orcamentos \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "categoriaId": 1,
+    "valorLimite": 800.00,
+    "mesReferencia": "2026-11"
+  }'
+
+curl -s 'http://localhost:8080/api/v1/orcamentos?mes=2026-11' \
+  -H "Authorization: Bearer SEU_TOKEN"
+```
+
+O dashboard é calculado a partir das transações confirmadas do contexto ativo.
+Nos orçamentos, somente saídas do mês e da categoria consomem o limite. O
+estado passa a `ATENCAO` a partir de 80% e a `EXCEDIDO` a partir de 100%.
+Existe no máximo um orçamento por categoria, contexto e mês.
+
 ## Testes e cobertura
 
 ```bash
@@ -170,20 +237,24 @@ mvn clean verify
 ```
 
 O comando inicia um PostgreSQL isolado com Testcontainers, executa as
-migrações Flyway V1 e V2, roda os testes e exige ao menos 60% de cobertura de
+migrações Flyway V1 a V4, roda os testes e exige ao menos 60% de cobertura de
 linhas das classes com regras executáveis. O relatório HTML fica em
 `target/site/jacoco/index.html`.
 
 Para validar apenas a imagem:
 
 ```bash
-docker build -t ji-back:sprint-2 .
+docker build -t ji-back:sprint-4 .
 ```
 
 A rastreabilidade da Sprint 1 está em
 [`docs/sprint-1-rastreabilidade.md`](docs/sprint-1-rastreabilidade.md). A
 matriz consolidada da Sprint 2 está em
-[`docs/sprint-2-rastreabilidade.md`](docs/sprint-2-rastreabilidade.md).
+[`docs/sprint-2-rastreabilidade.md`](docs/sprint-2-rastreabilidade.md). A
+Sprint 3 está registrada em
+[`docs/sprint-3-rastreabilidade.md`](docs/sprint-3-rastreabilidade.md).
+A Sprint 4 está em
+[`docs/sprint-4-rastreabilidade.md`](docs/sprint-4-rastreabilidade.md).
 
 Em produção, a API deve ficar atrás de HTTPS, usar segredo JWT e credenciais
 SMTP/PostgreSQL próprios e restringir `CORS_ALLOWED_ORIGINS` ao domínio real

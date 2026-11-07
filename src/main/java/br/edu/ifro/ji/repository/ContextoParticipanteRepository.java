@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ContextoParticipanteRepository extends JpaRepository<ContextoParticipante, Long> {
 
@@ -12,4 +13,8 @@ public interface ContextoParticipanteRepository extends JpaRepository<ContextoPa
     List<ContextoParticipante> findByUsuarioIdAndDataSaidaIsNullOrderByDataIngressoAsc(Long usuarioId);
 
     boolean existsByContextoIdAndUsuarioIdAndDataSaidaIsNull(Long contextoId, Long usuarioId);
+
+    @EntityGraph(attributePaths = {"contexto", "usuario"})
+    Optional<ContextoParticipante> findByContextoIdAndUsuarioIdAndDataSaidaIsNull(
+            Long contextoId, Long usuarioId);
 }
