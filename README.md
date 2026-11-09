@@ -230,6 +230,30 @@ Nos orçamentos, somente saídas do mês e da categoria consomem o limite. O
 estado passa a `ATENCAO` a partir de 80% e a `EXCEDIDO` a partir de 100%.
 Existe no máximo um orçamento por categoria, contexto e mês.
 
+Contextos e convites, usando o JWT retornado no login:
+
+```bash
+curl -s http://localhost:8080/api/v1/contextos \
+  -H "Authorization: Bearer SEU_TOKEN"
+
+curl -i http://localhost:8080/api/v1/contextos \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"nome":"Família"}'
+
+curl -i -X PUT http://localhost:8080/api/v1/contextos/ativo \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"contextoId":2}'
+
+curl -s http://localhost:8080/api/v1/convites \
+  -H "Authorization: Bearer SEU_TOKEN"
+```
+
+Quando a conta possui mais de um contexto, o login não escolhe um deles por
+suposição: retorna `selecaoContextoNecessaria=true` até a chamada de seleção.
+Convites são consultados pelo destinatário e só podem ser respondidos uma vez.
+
 ## Testes e cobertura
 
 ```bash
@@ -237,14 +261,14 @@ mvn clean verify
 ```
 
 O comando inicia um PostgreSQL isolado com Testcontainers, executa as
-migrações Flyway V1 a V4, roda os testes e exige ao menos 60% de cobertura de
+migrações Flyway V1 a V5, roda os testes e exige ao menos 60% de cobertura de
 linhas das classes com regras executáveis. O relatório HTML fica em
 `target/site/jacoco/index.html`.
 
 Para validar apenas a imagem:
 
 ```bash
-docker build -t ji-back:sprint-4 .
+docker build -t ji-back:sprint-5 .
 ```
 
 A rastreabilidade da Sprint 1 está em
@@ -255,6 +279,8 @@ Sprint 3 está registrada em
 [`docs/sprint-3-rastreabilidade.md`](docs/sprint-3-rastreabilidade.md).
 A Sprint 4 está em
 [`docs/sprint-4-rastreabilidade.md`](docs/sprint-4-rastreabilidade.md).
+A Sprint 5 está em
+[`docs/sprint-5-rastreabilidade.md`](docs/sprint-5-rastreabilidade.md).
 
 Em produção, a API deve ficar atrás de HTTPS, usar segredo JWT e credenciais
 SMTP/PostgreSQL próprios e restringir `CORS_ALLOWED_ORIGINS` ao domínio real

@@ -165,10 +165,14 @@ public class AutenticacaoService {
     @Transactional(readOnly = true)
     public SessaoResponse obterSessao(UsuarioPrincipal principal) {
         Sessao sessao = sessaoService.obter(principal.sessaoId());
+        List<ContextoParticipante> participacoes = participanteRepository
+                .findByUsuarioIdAndDataSaidaIsNullOrderByDataIngressoAsc(principal.usuarioId());
         return new SessaoResponse(
                 UsuarioResponse.de(sessao.getUsuario()),
                 sessao.getContextoAtivo() == null ? null : sessao.getContextoAtivo().getId(),
-                sessao.getDataExpiracao()
+                sessao.getDataExpiracao(),
+                sessao.getContextoAtivo() == null,
+                participacoes.stream().map(ContextoResponse::de).toList()
         );
     }
 

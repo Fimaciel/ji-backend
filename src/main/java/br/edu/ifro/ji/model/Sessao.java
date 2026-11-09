@@ -62,6 +62,10 @@ public class Sessao {
         }
     }
 
+    public void selecionarContexto(Contexto contexto) {
+        this.contextoAtivo = contexto;
+    }
+
     public Long getId() {
         return id;
     }

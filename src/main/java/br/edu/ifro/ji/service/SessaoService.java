@@ -97,6 +97,12 @@ public class SessaoService {
                 .orElseThrow(this::sessaoInvalida);
     }
 
+    @Transactional
+    public void selecionarContexto(Long sessaoId, Contexto contexto) {
+        Sessao sessao = obter(sessaoId);
+        sessao.selecionarContexto(contexto);
+    }
+
     private Sessao buscarAtiva(UUID jti) {
         Instant agora = Instant.now(clock);
         return repository.findByJti(jti)

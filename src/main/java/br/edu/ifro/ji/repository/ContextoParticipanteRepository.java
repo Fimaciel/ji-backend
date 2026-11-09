@@ -14,6 +14,8 @@ public interface ContextoParticipanteRepository extends JpaRepository<ContextoPa
 
     boolean existsByContextoIdAndUsuarioIdAndDataSaidaIsNull(Long contextoId, Long usuarioId);
 
+    long countByContextoIdAndDataSaidaIsNull(Long contextoId);
+
     @EntityGraph(attributePaths = {"contexto", "usuario"})
     Optional<ContextoParticipante> findByContextoIdAndUsuarioIdAndDataSaidaIsNull(
             Long contextoId, Long usuarioId);

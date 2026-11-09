@@ -42,7 +42,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/redefinicao-senha")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET,
-                                "/api/v1/auth/redefinicao-senha/validacao")
+                                "/api/v1/auth/redefinicao-senha/validacao",
+                                "/api/v1/convites/token/*")
                         .permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .anyRequest().authenticated())
