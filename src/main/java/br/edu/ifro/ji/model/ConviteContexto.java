@@ -36,6 +36,10 @@ public class ConviteContexto {
     @Column(name = "papel_proposto", nullable = false, length = 25)
     private PapelParticipante papelProposto;
 
+    @ManyToOne
+    @JoinColumn(name = "dependente_id")
+    private Dependente dependente;
+
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
     private String tokenHash;
 
@@ -68,6 +72,18 @@ public class ConviteContexto {
         this.dataExpiracao = dataExpiracao;
     }
 
+    public static ConviteContexto paraDependente(Contexto contexto, Usuario remetente,
+                                                  String emailConvidado, Dependente dependente,
+                                                  String tokenHash, Instant dataCriacao,
+                                                  Instant dataExpiracao) {
+        ConviteContexto convite = new ConviteContexto(
+                contexto, remetente, emailConvidado, PapelParticipante.DEPENDENTE,
+                tokenHash, dataCriacao, dataExpiracao
+        );
+        convite.dependente = dependente;
+        return convite;
+    }
+
     public boolean estaExpiradoEm(Instant instante) {
         return status == StatusConvite.PENDENTE && !dataExpiracao.isAfter(instante);
     }
@@ -89,6 +105,21 @@ public class ConviteContexto {
         dataResposta = instante;
     }
 
+    public void cancelar(Instant instante) {
+        if (status == StatusConvite.PENDENTE) {
+            status = StatusConvite.CANCELADO;
+            dataResposta = instante;
+        }
+    }
+
+    public void reenviar(String novoTokenHash, Instant agora, Instant novaExpiracao) {
+        this.tokenHash = novoTokenHash;
+        this.dataCriacao = agora;
+        this.dataExpiracao = novaExpiracao;
+        this.dataResposta = null;
+        this.status = StatusConvite.PENDENTE;
+    }
+
     public Long getId() {
         return id;
     }
@@ -108,6 +139,8 @@ public class ConviteContexto {
     public PapelParticipante getPapelProposto() {
         return papelProposto;
     }
+
+    public Dependente getDependente() { return dependente; }
 
     public String getTokenHash() {
         return tokenHash;

@@ -9,6 +9,7 @@ import br.edu.ifro.ji.model.StatusConvite;
 import br.edu.ifro.ji.model.Usuario;
 import br.edu.ifro.ji.repository.ContextoParticipanteRepository;
 import br.edu.ifro.ji.repository.ConviteContextoRepository;
+import br.edu.ifro.ji.repository.DependenteRepository;
 import br.edu.ifro.ji.repository.UsuarioRepository;
 import br.edu.ifro.ji.security.UsuarioPrincipal;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,7 @@ public class ConviteContextoService {
     private final ConviteContextoRepository conviteRepository;
     private final ContextoParticipanteRepository participanteRepository;
     private final UsuarioRepository usuarioRepository;
+    private final DependenteRepository dependenteRepository;
     private final TokenSeguroService tokenSeguroService;
     private final AuditoriaService auditoriaService;
     private final Clock clock;
@@ -32,12 +34,14 @@ public class ConviteContextoService {
     public ConviteContextoService(ConviteContextoRepository conviteRepository,
                                   ContextoParticipanteRepository participanteRepository,
                                   UsuarioRepository usuarioRepository,
+                                  DependenteRepository dependenteRepository,
                                   TokenSeguroService tokenSeguroService,
                                   AuditoriaService auditoriaService,
                                   Clock clock) {
         this.conviteRepository = conviteRepository;
         this.participanteRepository = participanteRepository;
         this.usuarioRepository = usuarioRepository;
+        this.dependenteRepository = dependenteRepository;
         this.tokenSeguroService = tokenSeguroService;
         this.auditoriaService = auditoriaService;
         this.clock = clock;
@@ -66,13 +70,6 @@ public class ConviteContextoService {
     public ConviteContextoResponse aceitar(UsuarioPrincipal principal, Long conviteId) {
         ConviteContexto convite = obterDoUsuario(principal, conviteId);
         validarPendente(convite);
-        if (convite.getPapelProposto() == PapelParticipante.DEPENDENTE) {
-            throw new RegraNegocioException(
-                    HttpStatus.CONFLICT,
-                    "dependente-indisponivel",
-                    "O vínculo de dependente ainda não está disponível para este convite."
-            );
-        }
         if (participanteRepository.existsByContextoIdAndUsuarioIdAndDataSaidaIsNull(
                 convite.getContexto().getId(), principal.usuarioId())) {
             throw new RegraNegocioException(
@@ -85,12 +82,26 @@ public class ConviteContextoService {
         Usuario usuario = usuarioRepository.findById(principal.usuarioId())
                 .orElseThrow(this::conviteInvalido);
         Instant agora = Instant.now(clock);
-        participanteRepository.save(new ContextoParticipante(
+        ContextoParticipante participante = participanteRepository.save(new ContextoParticipante(
                 convite.getContexto(),
                 usuario,
                 convite.getPapelProposto(),
                 agora
         ));
+        if (convite.getPapelProposto() == PapelParticipante.DEPENDENTE) {
+            if (convite.getDependente() == null
+                    || !convite.getDependente().getContexto().getId()
+                            .equals(convite.getContexto().getId())
+                    || convite.getDependente().getParticipante() != null) {
+                throw new RegraNegocioException(
+                        HttpStatus.CONFLICT,
+                        "dependente-invalido",
+                        "O dependente deste convite não está disponível para vínculo."
+                );
+            }
+            convite.getDependente().vincularParticipante(participante, agora);
+            dependenteRepository.save(convite.getDependente());
+        }
         convite.aceitar(agora);
         auditoriaService.registrar(
                 usuario,

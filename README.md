@@ -1,4 +1,4 @@
-# Ji Back — Sprints 1 a 4
+# Ji Back — Sprints 1 a 6
 
 API REST do Gerenciador Financeiro Pessoal Ji, desenvolvida com Java 21,
 Spring Boot 3.5.16 e PostgreSQL 17. A Sprint 1 implementa cadastro,
@@ -8,7 +8,9 @@ tema, restauração de configurações e encerramento lógico da conta.
 A Sprint 3 implementa o cadastro, a listagem, a edição, a exclusão e a
 categorização de entradas e saídas no contexto ativo. A Sprint 4 acrescenta
 o dashboard mensal (RF-09) e os orçamentos por categoria com alertas de 80%
-e de limite excedido (RF-16).
+e de limite excedido (RF-16). A Sprint 5 implementa criação e seleção de
+contextos e resposta a convites. A Sprint 6 acrescenta convites de
+colaboradores, dependentes e gestão de participantes e papéis.
 
 O acesso às rotas protegidas usa JWT HS256 com duração padrão de oito horas.
 O token contém apenas `sub`, `jti`, `iat`, `exp`, `iss` e `aud`. Cada `jti`
@@ -111,6 +113,21 @@ docker compose --profile app down
 | `POST` | `/api/v1/orcamentos` | Bearer JWT | `201` com orçamento criado |
 | `PUT` | `/api/v1/orcamentos/{id}` | Bearer JWT | `200` com orçamento atualizado |
 | `DELETE` | `/api/v1/orcamentos/{id}` | Bearer JWT | `204`; exclusão auditada |
+| `GET` | `/api/v1/contextos` | Bearer JWT | `200` com contextos e indicação do ativo |
+| `POST` | `/api/v1/contextos` | Bearer JWT | `201` com contexto compartilhado |
+| `PUT` | `/api/v1/contextos/ativo` | Bearer JWT | `200` com contexto selecionado |
+| `GET` | `/api/v1/contextos/ativo/convites` | Bearer JWT | `200` com convites enviados |
+| `POST` | `/api/v1/contextos/ativo/convites` | Bearer JWT | `201` e envio do convite |
+| `POST` | `/api/v1/contextos/ativo/convites/{id}/reenvio` | Bearer JWT | `200` com nova validade |
+| `DELETE` | `/api/v1/contextos/ativo/convites/{id}` | Bearer JWT | `204`; cancela convite pendente |
+| `GET` | `/api/v1/contextos/ativo/participantes` | Bearer JWT | `200` com ativos e histórico |
+| `PATCH` | `/api/v1/contextos/ativo/participantes/{id}/papel` | Bearer JWT | `200` com papel atualizado |
+| `DELETE` | `/api/v1/contextos/ativo/participantes/{id}` | Bearer JWT | `204`; encerra participação |
+| `DELETE` | `/api/v1/contextos/ativo/participantes/me` | Bearer JWT | `204`; saída voluntária |
+| `GET` | `/api/v1/dependentes` | Bearer JWT | `200` com dependentes ativos |
+| `POST` | `/api/v1/dependentes` | Bearer JWT | `201`; pode enviar convite de leitura |
+| `PUT` | `/api/v1/dependentes/{id}` | Bearer JWT | `200` com dependente atualizado |
+| `DELETE` | `/api/v1/dependentes/{id}` | Bearer JWT | `204`; exclusão lógica e revogação do acesso |
 | `GET` | `/actuator/health` | pública | `200` |
 
 Cadastro:
@@ -254,6 +271,33 @@ Quando a conta possui mais de um contexto, o login não escolhe um deles por
 suposição: retorna `selecaoContextoNecessaria=true` até a chamada de seleção.
 Convites são consultados pelo destinatário e só podem ser respondidos uma vez.
 
+Colaboração no contexto compartilhado:
+
+```bash
+curl -i http://localhost:8080/api/v1/contextos/ativo/convites \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"colaborador@example.com"}'
+
+curl -i http://localhost:8080/api/v1/dependentes \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "nome":"Pessoa dependente",
+    "dataNascimento":"2012-08-21",
+    "tipo":"LEITURA",
+    "email":"dependente@example.com"
+  }'
+
+curl -s http://localhost:8080/api/v1/contextos/ativo/participantes \
+  -H "Authorization: Bearer SEU_TOKEN"
+```
+
+Somente administradores de contextos compartilhados enviam convites,
+gerenciam dependentes e alteram participantes. O contexto nunca pode ficar
+sem administrador. O papel `DEPENDENTE` é criado apenas pelo convite associado
+a um cadastro do tipo `LEITURA`.
+
 ## Testes e cobertura
 
 ```bash
@@ -261,14 +305,14 @@ mvn clean verify
 ```
 
 O comando inicia um PostgreSQL isolado com Testcontainers, executa as
-migrações Flyway V1 a V5, roda os testes e exige ao menos 60% de cobertura de
+migrações Flyway V1 a V6, roda os testes e exige ao menos 60% de cobertura de
 linhas das classes com regras executáveis. O relatório HTML fica em
 `target/site/jacoco/index.html`.
 
 Para validar apenas a imagem:
 
 ```bash
-docker build -t ji-back:sprint-5 .
+docker build -t ji-back:sprint-6 .
 ```
 
 A rastreabilidade da Sprint 1 está em
@@ -281,6 +325,8 @@ A Sprint 4 está em
 [`docs/sprint-4-rastreabilidade.md`](docs/sprint-4-rastreabilidade.md).
 A Sprint 5 está em
 [`docs/sprint-5-rastreabilidade.md`](docs/sprint-5-rastreabilidade.md).
+A Sprint 6 está em
+[`docs/sprint-6-rastreabilidade.md`](docs/sprint-6-rastreabilidade.md).
 
 Em produção, a API deve ficar atrás de HTTPS, usar segredo JWT e credenciais
 SMTP/PostgreSQL próprios e restringir `CORS_ALLOWED_ORIGINS` ao domínio real

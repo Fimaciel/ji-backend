@@ -73,4 +73,14 @@ public class ContextoParticipante {
     public Instant getDataSaida() {
         return dataSaida;
     }
+
+    public void alterarPapel(PapelParticipante papel) {
+        this.papel = papel;
+    }
+
+    public void encerrar(Instant agora) {
+        if (dataSaida == null) {
+            dataSaida = agora;
+        }
+    }
 }

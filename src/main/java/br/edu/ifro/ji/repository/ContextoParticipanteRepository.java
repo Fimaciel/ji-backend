@@ -16,6 +16,15 @@ public interface ContextoParticipanteRepository extends JpaRepository<ContextoPa
 
     long countByContextoIdAndDataSaidaIsNull(Long contextoId);
 
+    long countByContextoIdAndPapelAndDataSaidaIsNull(Long contextoId,
+                                                     br.edu.ifro.ji.model.PapelParticipante papel);
+
+    @EntityGraph(attributePaths = {"contexto", "usuario"})
+    List<ContextoParticipante> findByContextoIdOrderByDataIngressoAsc(Long contextoId);
+
+    @EntityGraph(attributePaths = {"contexto", "usuario"})
+    Optional<ContextoParticipante> findByIdAndContextoId(Long id, Long contextoId);
+
     @EntityGraph(attributePaths = {"contexto", "usuario"})
     Optional<ContextoParticipante> findByContextoIdAndUsuarioIdAndDataSaidaIsNull(
             Long contextoId, Long usuarioId);
