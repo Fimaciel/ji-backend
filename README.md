@@ -1,4 +1,4 @@
-# Ji Back — Sprints 1 a 6
+# Ji Back — Implementação funcional completa
 
 API REST do Gerenciador Financeiro Pessoal Ji, desenvolvida com Java 21,
 Spring Boot 3.5.16 e PostgreSQL 17. A Sprint 1 implementa cadastro,
@@ -10,7 +10,9 @@ categorização de entradas e saídas no contexto ativo. A Sprint 4 acrescenta
 o dashboard mensal (RF-09) e os orçamentos por categoria com alertas de 80%
 e de limite excedido (RF-16). A Sprint 5 implementa criação e seleção de
 contextos e resposta a convites. A Sprint 6 acrescenta convites de
-colaboradores, dependentes e gestão de participantes e papéis.
+colaboradores, dependentes e gestão de participantes e papéis. A etapa final
+inclui importação revisável de transações em PDF/XLSX (RF-05) e relatórios
+gerais exportáveis nos dois formatos (RF-08).
 
 O acesso às rotas protegidas usa JWT HS256 com duração padrão de oito horas.
 O token contém apenas `sub`, `jti`, `iat`, `exp`, `iss` e `aud`. Cada `jti`
@@ -128,6 +130,12 @@ docker compose --profile app down
 | `POST` | `/api/v1/dependentes` | Bearer JWT | `201`; pode enviar convite de leitura |
 | `PUT` | `/api/v1/dependentes/{id}` | Bearer JWT | `200` com dependente atualizado |
 | `DELETE` | `/api/v1/dependentes/{id}` | Bearer JWT | `204`; exclusão lógica e revogação do acesso |
+| `POST` | `/api/v1/importacoes/analise` | Bearer JWT | `200` com prévia, duplicados e categorias sugeridas |
+| `POST` | `/api/v1/importacoes` | Bearer JWT | `201` com importação confirmada |
+| `GET` | `/api/v1/importacoes` | Bearer JWT | `200` com histórico do contexto ativo |
+| `DELETE` | `/api/v1/importacoes/ultima` | Bearer JWT | `200`; desfaz a última importação concluída |
+| `GET` | `/api/v1/relatorios/resumo` | Bearer JWT | `200` com totais, categorias e transações |
+| `GET` | `/api/v1/relatorios/exportacao` | Bearer JWT | arquivo PDF ou XLSX |
 | `GET` | `/actuator/health` | pública | `200` |
 
 Cadastro:
@@ -218,8 +226,8 @@ curl -s 'http://localhost:8080/api/v1/transacoes?tipo=SAIDA&pagina=0' \
   -H "Authorization: Bearer SEU_TOKEN"
 ```
 
-As cinco categorias padrão são Alimentação, Transporte, Saúde, Lazer e
-Salário. Categorias personalizadas pertencem ao contexto ativo. Ao excluir uma
+As seis categorias padrão são Alimentação, Transporte, Saúde, Lazer, Salário
+e Outros. Categorias personalizadas pertencem ao contexto ativo. Ao excluir uma
 categoria já usada, ela deixa de aparecer em novos lançamentos, mas permanece
 associada ao histórico.
 
@@ -298,6 +306,29 @@ gerenciam dependentes e alteram participantes. O contexto nunca pode ficar
 sem administrador. O papel `DEPENDENTE` é criado apenas pelo convite associado
 a um cadastro do tipo `LEITURA`.
 
+Importação e relatório, usando o JWT retornado no login:
+
+```bash
+curl -s http://localhost:8080/api/v1/importacoes/analise \
+  -H "Authorization: Bearer SEU_TOKEN" \
+  -F arquivo=@extrato.xlsx
+
+curl -s 'http://localhost:8080/api/v1/relatorios/resumo?dataInicial=2026-11-01&dataFinal=2026-11-30' \
+  -H "Authorization: Bearer SEU_TOKEN"
+
+curl -o relatorio.pdf \
+  'http://localhost:8080/api/v1/relatorios/exportacao?dataInicial=2026-11-01&dataFinal=2026-11-30&formato=PDF' \
+  -H "Authorization: Bearer SEU_TOKEN"
+```
+
+Planilhas devem usar a primeira aba e conter `data`, `descrição`, `valor` e
+`tipo`. O PDF precisa ter texto selecionável e uma movimentação por linha.
+Arquivos têm limite de 10 MB e 1.000 registros. A análise não grava dados: o
+cliente deve enviar a seleção revisada para `POST /api/v1/importacoes`.
+Duplicados usam data, valor e descrição no mesmo contexto. O relatório aceita
+`tipo`, `categoriaId` e um ou mais `contextoIds`; sem contextos informados,
+consulta apenas o contexto ativo.
+
 ## Testes e cobertura
 
 ```bash
@@ -305,14 +336,14 @@ mvn clean verify
 ```
 
 O comando inicia um PostgreSQL isolado com Testcontainers, executa as
-migrações Flyway V1 a V6, roda os testes e exige ao menos 60% de cobertura de
+migrações Flyway V1 a V7, roda os testes e exige ao menos 60% de cobertura de
 linhas das classes com regras executáveis. O relatório HTML fica em
 `target/site/jacoco/index.html`.
 
 Para validar apenas a imagem:
 
 ```bash
-docker build -t ji-back:sprint-6 .
+docker build -t ji-back:latest .
 ```
 
 A rastreabilidade da Sprint 1 está em
@@ -327,6 +358,8 @@ A Sprint 5 está em
 [`docs/sprint-5-rastreabilidade.md`](docs/sprint-5-rastreabilidade.md).
 A Sprint 6 está em
 [`docs/sprint-6-rastreabilidade.md`](docs/sprint-6-rastreabilidade.md).
+A entrega final está em
+[`docs/sprint-7-rastreabilidade.md`](docs/sprint-7-rastreabilidade.md).
 
 Em produção, a API deve ficar atrás de HTTPS, usar segredo JWT e credenciais
 SMTP/PostgreSQL próprios e restringir `CORS_ALLOWED_ORIGINS` ao domínio real
