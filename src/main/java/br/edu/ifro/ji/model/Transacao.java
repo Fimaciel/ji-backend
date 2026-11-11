@@ -35,6 +35,10 @@ public class Transacao {
     @JoinColumn(name = "categoria_id", nullable = false)
     private Categoria categoria;
 
+    @ManyToOne
+    @JoinColumn(name = "importacao_id")
+    private ImportacaoArquivo importacao;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private TipoTransacao tipo;
@@ -71,6 +75,10 @@ public class Transacao {
         this.dataAtualizacao = agora;
     }
 
+    public void vincularImportacao(ImportacaoArquivo importacao) {
+        this.importacao = importacao;
+    }
+
     public void atualizar(Categoria categoria, TipoTransacao tipo, BigDecimal valor,
                           LocalDate data, String descricao, Instant agora) {
         this.categoria = categoria;
@@ -95,6 +103,10 @@ public class Transacao {
 
     public Categoria getCategoria() {
         return categoria;
+    }
+
+    public ImportacaoArquivo getImportacao() {
+        return importacao;
     }
 
     public TipoTransacao getTipo() {

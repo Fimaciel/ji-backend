@@ -115,7 +115,7 @@ class TransacoesCategoriasApiIntegrationTest {
         String categorias = mvc.perform(get("/api/v1/categorias")
                         .header("Authorization", bearer(token)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(5))
+                .andExpect(jsonPath("$.length()").value(6))
                 .andExpect(jsonPath("$[?(@.nome == 'Alimentação')]").exists())
                 .andExpect(jsonPath("$[*].tipo").value(org.hamcrest.Matchers.everyItem(
                         org.hamcrest.Matchers.is("PADRAO"))))
