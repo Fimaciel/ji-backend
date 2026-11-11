@@ -8,6 +8,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
@@ -65,6 +66,18 @@ public class ApiExceptionHandler {
                 "dados-em-conflito",
                 "Não foi possível concluir a operação",
                 "Os dados informados entram em conflito com um registro existente.",
+                request
+        );
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ProblemDetail tratarArquivoMuitoGrande(MaxUploadSizeExceededException exception,
+                                            HttpServletRequest request) {
+        return criarProblema(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "arquivo-muito-grande",
+                "Arquivo muito grande",
+                "O arquivo deve ter no máximo 10 MB.",
                 request
         );
     }

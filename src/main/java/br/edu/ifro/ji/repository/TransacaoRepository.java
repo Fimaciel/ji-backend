@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
@@ -18,6 +19,14 @@ public interface TransacaoRepository extends JpaRepository<Transacao, Long>,
     Optional<Transacao> findByIdAndContextoId(Long id, Long contextoId);
 
     boolean existsByCategoriaId(Long categoriaId);
+
+    @EntityGraph(attributePaths = "categoria")
+    List<Transacao> findByContextoIdAndDataBetweenOrderByDataAscIdAsc(
+            Long contextoId, LocalDate inicio, LocalDate fim);
+
+    @Modifying
+    @Query("delete from Transacao t where t.importacao.id = :importacaoId")
+    int excluirPorImportacao(@Param("importacaoId") Long importacaoId);
 
     @Query("""
             select coalesce(sum(t.valor), 0) from Transacao t
